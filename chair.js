@@ -46,6 +46,16 @@ var ANGLE_STEP = 3.0; // The increments of rotation angle (degrees)
 var g_xAngle = 0.0; // The rotation x angle (degrees)
 var g_yAngle = 0.0; // The rotation y angle (degrees)
 
+var color_sky = [100, 150, 255]
+var color_red = [255,0,0]
+var color_wood = [139,90,43]
+var color_lwood = [255,165,79]
+var color_dgrey = [40,40,40]
+var color_lgrey = [150,150,150]
+var color_black = [0,0,0]
+var color_white = [255,255,255]
+var color_navy = [0,0,80]
+
 function main() {
 	// Retrieve <canvas> element
 	var canvas = document.getElementById('webgl');
@@ -67,7 +77,7 @@ function main() {
 	}
 
 	// Set clear color and enable hidden surface removal
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	gl.clearColor(0, 0, 0, 0);
 	gl.enable(gl.DEPTH_TEST);
 
 	// Clear color and depth buffer
@@ -150,15 +160,6 @@ function initVertexBuffers(gl) {
 		0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5 // v4-v7-v6-v5 back
 	]);
 
-	var colors = new Float32Array([ // Colors
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, // v0-v1-v2-v3 front
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, // v0-v3-v4-v5 right
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, // v0-v5-v6-v1 up
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, // v1-v6-v7-v2 left
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, // v7-v4-v3-v2 down
-		1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0　 // v4-v7-v6-v5 back
-	]);
-
 	var normals = new Float32Array([ // Normal
 		0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, // v0-v1-v2-v3 front
 		1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, // v0-v3-v4-v5 right
@@ -180,8 +181,8 @@ function initVertexBuffers(gl) {
 
 	// Write the vertex property to buffers (coordinates, colors and normals)
 	if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
-	if (!initArrayBuffer(gl, 'a_Color', colors, 3, gl.FLOAT)) return -1;
 	if (!initArrayBuffer(gl, 'a_Normal', normals, 3, gl.FLOAT)) return -1;
+	setColors(gl, color_red)
 
 	// Write the indices to the buffer object
 	var indexBuffer = gl.createBuffer();
@@ -194,6 +195,22 @@ function initVertexBuffers(gl) {
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
 	return indices.length;
+}
+
+function setColors(gl, color){
+	var r = color[0]/255
+	var g = color[1]/255
+	var b = color[2]/255
+	
+	var colors = new Float32Array([ // Colors
+		r, g, b, r, g, b, r, g, b, r, g, b, // v0-v1-v2-v3 front
+		r, g, b, r, g, b, r, g, b, r, g, b, // v0-v3-v4-v5 right
+		r, g, b, r, g, b, r, g, b, r, g, b, // v0-v5-v6-v1 up
+		r, g, b, r, g, b, r, g, b, r, g, b, // v1-v6-v7-v2 left
+		r, g, b, r, g, b, r, g, b, r, g, b, // v7-v4-v3-v2 down
+		r, g, b, r, g, b, r, g, b, r, g, b, // v4-v7-v6-v5 back
+	]);
+	if (!initArrayBuffer(gl, 'a_Color', colors, 3, gl.FLOAT)) return -1;
 }
 
 function initArrayBuffer(gl, attribute, data, num, type) {
@@ -221,6 +238,7 @@ function initArrayBuffer(gl, attribute, data, num, type) {
 	return true;
 }
 
+//delete this?
 function initAxesVertexBuffers(gl) {
 
 	var verticesColors = new Float32Array([
@@ -333,22 +351,22 @@ function modelTeacherChairDesk(ctx, x, y, z){
 }
 
 function modelTeacherChair(ctx, x, y, z) {
-	addCube(ctx, x, y, z, 1, 0.2, 1) //seat
-	addCube(ctx, x, y+1, z+0.5, 1, 1.3, 0.2) //back
-	addCube(ctx, x, y+0.4, z+0.6, 0.2, 0.9, 0.15) //connector
-	addCube(ctx, x, y-0.5, z, 0.2, 0.9, 0.2) //wheel connector
-	addCubeWithRotate(ctx, x, y-0.95, z, 1.6, 0.2, 0.2, 0, 45, 0) //one diagonal
-	addCubeWithRotate(ctx, x, y-0.95, z, 1.6, 0.2, 0.2, 0, -45, 0) //one diagonal
-	addCubeWithRotate(ctx, x+0.5, y-1.1, z+0.5, 0.15, 0.15, 0.15, 0, 45, 0) //one wheel
-	addCubeWithRotate(ctx, x-0.5, y-1.1, z+0.5, 0.15, 0.15, 0.15, 0, 45, 0) //one wheel
-	addCubeWithRotate(ctx, x+0.5, y-1.1, z-0.5, 0.15, 0.15, 0.15, 0, -45, 0) //one wheel
-	addCubeWithRotate(ctx, x-0.5, y-1.1, z-0.5, 0.15, 0.15, 0.15, 0, -45, 0) //one wheel
+	addCube(ctx, x, y, z, 1, 0.2, 1, color_lgrey) //seat
+	addCube(ctx, x, y+1, z+0.5, 1, 1.3, 0.2, color_lgrey) //back
+	addCube(ctx, x, y+0.4, z+0.6, 0.2, 0.9, 0.15, color_dgrey) //connector
+	addCube(ctx, x, y-0.5, z, 0.2, 0.9, 0.2, color_dgrey) //wheel connector
+	addCubeWithRotate(ctx, x, y-0.95, z, 1.6, 0.2, 0.2, 0, 45, 0, color_dgrey) //one diagonal
+	addCubeWithRotate(ctx, x, y-0.95, z, 1.6, 0.2, 0.2, 0, -45, 0, color_dgrey) //one diagonal
+	addCubeWithRotate(ctx, x+0.5, y-1.1, z+0.5, 0.15, 0.15, 0.15, 0, 45, 0, color_black) //one wheel
+	addCubeWithRotate(ctx, x-0.5, y-1.1, z+0.5, 0.15, 0.15, 0.15, 0, 45, 0, color_black) //one wheel
+	addCubeWithRotate(ctx, x+0.5, y-1.1, z-0.5, 0.15, 0.15, 0.15, 0, -45, 0, color_black) //one wheel
+	addCubeWithRotate(ctx, x-0.5, y-1.1, z-0.5, 0.15, 0.15, 0.15, 0, -45, 0, color_black) //one wheel
 }
 
 function modelTeacherDesk(ctx, x, y, z) {
-	addCube(ctx, x, y + 0.75, z, 4, 0.2, 2) //chair back
-	addCube(ctx, x + 1.4, y-0.2, z, 1, 1.9, 1.8) //left side
-	addCube(ctx, x - 1.4, y-0.2, z, 1, 1.9, 1.8) //right side
+	addCube(ctx, x, y + 0.75, z, 4, 0.2, 2, color_wood) //chair back
+	addCube(ctx, x + 1.4, y-0.2, z, 1, 1.9, 1.8, color_wood) //left side
+	addCube(ctx, x - 1.4, y-0.2, z, 1, 1.9, 1.8, color_wood) //right side
 }
 
 function modelChairDeskRows(ctx, x, y, z) {
@@ -371,27 +389,28 @@ function modelChairDesk(ctx, x, y, z) {
 }
 
 function modelDesk(ctx, x, y, z) {
-	addCube(ctx, x - 0.625, y + 1, z, 2, 0.1, 1) //desk top
-	addCube(ctx, x + 0.2, y + 0.275, z + 0.375, 0.1, 1.4, 0.1) //front right leg
-	addCube(ctx, x - 1.45, y + 0.275, z + 0.375, 0.1, 1.4, 0.1) //front left leg
-	addCube(ctx, x + 0.2, y + 0.275, z - 0.375, 0.1, 1.4, 0.1) //back right leg
-	addCube(ctx, x - 1.45, y + 0.275, z - 0.375, 0.1, 1.4, 0.1) //back left leg
+	addCube(ctx, x - 0.625, y + 1, z, 2, 0.1, 1, color_lwood) //desk top
+	addCube(ctx, x + 0.2, y + 0.275, z + 0.375, 0.1, 1.4, 0.1, color_lwood) //front right leg
+	addCube(ctx, x - 1.45, y + 0.275, z + 0.375, 0.1, 1.4, 0.1, color_lwood) //front left leg
+	addCube(ctx, x + 0.2, y + 0.275, z - 0.375, 0.1, 1.4, 0.1, color_lwood) //back right leg
+	addCube(ctx, x - 1.45, y + 0.275, z - 0.375, 0.1, 1.4, 0.1, color_lwood) //back left leg
 }
 
 function modelChair(ctx, x, y, z) {
-	addCube(ctx, x + 0.375, y + 0.5, z + 0.375, 1, 0.25, 1) //chair seat
-	addCube(ctx, x + 0.375, y + 1.125, z, 1, 1, 0.25) //chair back
-	addCube(ctx, x + 0.75, y, z + 0.75, 0.25, 0.75, 0.25) //front right leg
-	addCube(ctx, x, y, z + 0.75, 0.25, 0.75, 0.25) //front left leg
-	addCube(ctx, x + 0.75, y, z, 0.25, 0.75, 0.25) //back right leg
-	addCube(ctx, x, y, z, 0.25, 0.75, 0.25) //back left leg
+	addCube(ctx, x + 0.375, y + 0.5, z + 0.375, 1, 0.25, 1, color_navy) //chair seat
+	addCube(ctx, x + 0.375, y + 1.125, z, 1, 1, 0.25, color_navy) //chair back
+	addCube(ctx, x + 0.75, y, z + 0.75, 0.25, 0.75, 0.25, color_wood) //front right leg
+	addCube(ctx, x, y, z + 0.75, 0.25, 0.75, 0.25, color_wood) //front left leg
+	addCube(ctx, x + 0.75, y, z, 0.25, 0.75, 0.25, color_wood) //back right leg
+	addCube(ctx, x, y, z, 0.25, 0.75, 0.25, color_wood) //back left leg
 }
 
-function addCube(ctx, x, y, z, sX, sY, sZ){
-	addCubeWithRotate(ctx, x, y, z, sX, sY, sZ, 0, 0, 0);
+function addCube(ctx, x, y, z, sX, sY, sZ, color){
+	addCubeWithRotate(ctx, x, y, z, sX, sY, sZ, 0, 0, 0, color);
 }
 
-function addCubeWithRotate(ctx, x, y, z, sX, sY, sZ, rX, rY, rZ) {
+function addCubeWithRotate(ctx, x, y, z, sX, sY, sZ, rX, rY, rZ, color) {
+	setColors(ctx.gl, color)
 	pushMatrix(modelMatrix);
 	modelMatrix.translate(x, y, z); // Translation
 	modelMatrix.rotate(rX, 1, 0, 0); //Rotate x
