@@ -85,7 +85,6 @@ function main() {
 
 	// Get the storage locations of uniform attributes
 	var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
-	var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
 	var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
 	var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
 	var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
@@ -94,8 +93,8 @@ function main() {
 	// Trigger using lighting or not
 	var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting');
 
-	if (!(u_ModelMatrix && u_ViewMatrix && u_NormalMatrix && u_ProjMatrix && u_LightColor && u_LightDirection && u_isLighting)) {
-		console.log('Failed to Get the storage locations of u_ModelMatrix, u_ViewMatrix, and/or u_ProjMatrix');
+	if (!(u_ModelMatrix && u_NormalMatrix && u_ProjMatrix && u_LightColor && u_LightDirection && u_isLighting)) {
+		console.log('Failed to Get the storage locations of matrix');
 		return;
 	}
 
@@ -105,12 +104,12 @@ function main() {
 	var lightDirection = new Vector3([0.5, 3.0, 4.0]);
 	lightDirection.normalize(); // Normalize
 	gl.uniform3fv(u_LightDirection, lightDirection.elements);
+	
+	updateViewMatrix(gl)
 
 	// Calculate the view matrix and the projection matrix
-	viewMatrix.setLookAt(0, 0, 15, 0, 0, -100, 0, 1, 0);
 	projMatrix.setPerspective(30, canvas.width / canvas.height, 1, 100);
 	// Pass the model, view, and projection matrix to the uniform variable respectively
-	gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 	gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
 
 	document.onkeydown = function(ev) {
@@ -120,19 +119,33 @@ function main() {
 	draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting);
 }
 
+function updateViewMatrix(gl){
+	var u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
+	if(!u_ViewMatrix){
+		console.log('Failed to Get the storage locations of matrix');
+		return;
+	}
+	pos = [0,10,15]
+	dir = [0,g_yAngle,0]
+	up = [0,1,0]
+	console.log(dir)
+	viewMatrix.setLookAt(...pos, ...dir, ...up);
+	gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
+}
+
 function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 	switch (ev.keyCode) {
 		case 40: // Up arrow key -> the positive rotation of arm1 around the y-axis
-			g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
+			g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
 			break;
 		case 38: // Down arrow key -> the negative rotation of arm1 around the y-axis
-			g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
-			break;
-		case 39: // Right arrow key -> the positive rotation of arm1 around the y-axis
 			g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
 			break;
+		case 39: // Right arrow key -> the positive rotation of arm1 around the y-axis
+			g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
+			break;
 		case 37: // Left arrow key -> the negative rotation of arm1 around the y-axis
-			g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
+			g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
 			break;
 		default:
 			return; // Skip drawing at no effective action
@@ -256,7 +269,6 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 
 	// Pass the model matrix to the uniform variable
 	gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-
 	gl.uniform1i(u_isLighting, true); // Will apply lighting
 
 	// Set the vertex coordinates and color (for the cube)
@@ -271,13 +283,8 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 	ctx.u_ModelMatrix = u_ModelMatrix
 	ctx.u_NormalMatrix = u_NormalMatrix
 	ctx.n = n
-
-	// Translate, and then rotate the model
-	modelMatrix.setTranslate(0, 0, 0); // Translation (No translation is supported here yet)
-	modelMatrix.rotate(10+g_xAngle, 1, 0, 0); // Rotate along x axis
-	modelMatrix.rotate(120+g_yAngle, 0, 1, 0); // Rotate along y axis
-	//modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
-	//modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
+	
+	updateViewMatrix(gl)
 
 	modelDesksAndChairs(ctx, 0, 0, 0)
 }
