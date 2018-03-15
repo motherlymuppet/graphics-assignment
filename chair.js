@@ -38,13 +38,9 @@ var FSHADER_SOURCE =
 	'}\n';
 
 var modelMatrix = new Matrix4(); // The model matrix
-var viewMatrix = new Matrix4(); // The view matrix
 var projMatrix = new Matrix4(); // The projection matrix
+var viewMatrix = new Matrix4(); // The view matrix
 var g_normalMatrix = new Matrix4(); // Coordinate transformation matrix for normals
-
-var ANGLE_STEP = 3.0; // The increments of rotation angle (degrees)
-var g_xAngle = 0.0; // The rotation x angle (degrees)
-var g_yAngle = 0.0; // The rotation y angle (degrees)
 
 var color_sky = [100, 150, 255]
 var color_red = [255,0,0]
@@ -55,6 +51,14 @@ var color_lgrey = [150,150,150]
 var color_black = [0,0,0]
 var color_white = [255,255,255]
 var color_navy = [0,0,80]
+
+var ANGLE_STEP = 0.1
+
+var eyePos = new THREE.Vector3(0,0,0)
+var eyeDir = new THREE.Vector3(0, 0, -1)
+
+var eyeUp = new THREE.Vector3(0,1,0)
+var eyeSide = new THREE.Vector3(1,0,0)
 
 function main() {
 	// Retrieve <canvas> element
@@ -104,7 +108,7 @@ function main() {
 	var lightDirection = new Vector3([0.5, 3.0, 4.0]);
 	lightDirection.normalize(); // Normalize
 	gl.uniform3fv(u_LightDirection, lightDirection.elements);
-	
+
 	updateViewMatrix(gl)
 
 	// Calculate the view matrix and the projection matrix
@@ -125,27 +129,33 @@ function updateViewMatrix(gl){
 		console.log('Failed to Get the storage locations of matrix');
 		return;
 	}
-	pos = [0,10,15]
-	dir = [0,g_yAngle,0]
-	up = [0,1,0]
-	console.log(dir)
-	viewMatrix.setLookAt(...pos, ...dir, ...up);
+	//console.log(viewMatrix.elements)
+	viewMatrix.setLookAt(eyePos.x, eyePos.y, eyePos.z, eyeDir.x + eyePos.x, eyeDir.y + eyePos.y, eyeDir.z + eyePos.z, eyeUp.x, eyeUp.y, eyeUp.z)
 	gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 }
 
 function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 	switch (ev.keyCode) {
-		case 40: // Up arrow key -> the positive rotation of arm1 around the y-axis
-			g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
+		case 40: // Up arrow key
+			eyeDir.applyAxisAngle(eyeSide, -ANGLE_STEP)
+			eyeUp.crossVectors(eyeDir, eyeSide)
+			//Ensure this doesn't go over the top and turn upside down
+			eyeUp.normalize()
 			break;
-		case 38: // Down arrow key -> the negative rotation of arm1 around the y-axis
-			g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
+		case 38: // Down arrow key
+			eyeDir.applyAxisAngle(eyeSide, ANGLE_STEP)
+			eyeUp.crossVectors(eyeDir, eyeSide)
+			eyeUp.normalize()
 			break;
-		case 39: // Right arrow key -> the positive rotation of arm1 around the y-axis
-			g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
+		case 39: // Right arrow key
+			eyeDir.applyAxisAngle(eyeUp, -ANGLE_STEP)
+			eyeSide.crossVectors(eyeDir, eyeUp)
+			eyeSide.normalize()
 			break;
-		case 37: // Left arrow key -> the negative rotation of arm1 around the y-axis
-			g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
+		case 37: // Left arrow key
+			eyeDir.applyAxisAngle(eyeUp, ANGLE_STEP)
+			eyeSide.crossVectors(eyeDir, eyeUp)
+			eyeSide.normalize()
 			break;
 		default:
 			return; // Skip drawing at no effective action
@@ -263,7 +273,6 @@ function popMatrix() { // Retrieve the matrix from the array
 
 //This does the actual creation of the scene
 function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
-
 	// Clear color and depth buffer
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -334,7 +343,7 @@ function modelChairDeskRow(ctx, x, y, z) {
 
 function modelChairDesk(ctx, x, y, z) {
 	modelChair(ctx, x, y, z)
-	modelDesk(ctx, x + 1, y, z + 1)
+	modelDesk(ctx, x + 1, y+0.1, z + 1)
 }
 
 function modelDesk(ctx, x, y, z) {
