@@ -1,61 +1,28 @@
-﻿// Directional lighting demo: By Frederick Li
-// Vertex shader program
-var VSHADER_SOURCE =
-	'attribute vec4 a_Position;\n' +
-	'attribute vec4 a_Color;\n' +
-	'attribute vec4 a_Normal;\n' + // Normal
-	'uniform mat4 u_ModelMatrix;\n' + // No idea
-	'uniform mat4 u_NormalMatrix;\n' + // Probably lighting related
-	'uniform mat4 u_ViewMatrix;\n' + // View Matrix?? This might be camera direction
-	'uniform mat4 u_ProjMatrix;\n' + // Projection Matrix??
-	'uniform vec3 u_LightColor;\n' + // Light color
-	'uniform vec3 u_LightDirection;\n' + // Light direction (in the world coordinate, normalized)
-	'varying vec4 v_Color;\n' +
-	'uniform bool u_isLighting;\n' +
-	'void main() {\n' +
-	'  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;\n' +
-	'  if(u_isLighting)\n' +
-	'  {\n' +
-	'     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);\n' +
-	'     float nDotL = max(dot(normal, u_LightDirection), 0.0);\n' +
-	// Calculate the color due to diffuse reflection
-	'     vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
-	'     v_Color = vec4(diffuse, a_Color.a);\n' + '  }\n' +
-	'  else\n' +
-	'  {\n' +
-	'     v_Color = a_Color;\n' +
-	'  }\n' +
-	'}\n';
-
-// Fragment shader program
-var FSHADER_SOURCE =
-	'#ifdef GL_ES\n' +
-	'precision mediump float;\n' +
-	'#endif\n' +
-	'varying vec4 v_Color;\n' +
-	'void main() {\n' +
-	'  gl_FragColor = v_Color;\n' +
-	'}\n';
-
-var modelMatrix = new Matrix4(); // The model matrix
+﻿var modelMatrix = new Matrix4(); // The model matrix
 var projMatrix = new Matrix4(); // The projection matrix
 var viewMatrix = new Matrix4(); // The view matrix
 var g_normalMatrix = new Matrix4(); // Coordinate transformation matrix for normals
 
-var color_sky = [100, 150, 255]
-var color_red = [255,0,0]
-var color_wood = [139,90,43]
-var color_lwood = [255,165,79]
-var color_dgrey = [40,40,40]
-var color_lgrey = [150,150,150]
-var color_black = [0,0,0]
-var color_white = [255,255,255]
-var color_navy = [0,0,80]
+var color_sky = [100, 150, 255, 1]
+var color_red = [255,0,0,1]
+var color_wood = [139,90,43,1]
+var color_lwood = [255,165,79,1]
+var color_dgrey = [40,40,40,1]
+var color_lgrey = [150,150,150,1]
+var color_black = [0,0,0,1]
+var color_white = [255,255,255,1]
+var color_navy = [0,0,80,1]
+var color_wall = [186,252,217,1]
+var color_floor = [190,204,226,1]
+var color_ceiling = [183,177,150,1]
+var color_glass = [0,100,255,0.5]
 
-var ANGLE_STEP = 0.1
+var ANGLE_STEP = 0.08
+var STEP_AMOUNT = 0.6
 
-var eyePos = new THREE.Vector3(0,0,0)
-var eyeDir = new THREE.Vector3(0, 0, -1)
+var height = 3
+var eyePos = new THREE.Vector3(0,height,-10)
+var eyeDir = new THREE.Vector3(0, 0, STEP_AMOUNT)
 
 var eyeUp = new THREE.Vector3(0,1,0)
 var eyeSide = new THREE.Vector3(1,0,0)
@@ -75,7 +42,7 @@ function main() {
 	}
 
 	// Initialize shaders
-	if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+	if (!initShaders(gl, document.getElementById("vertex-shader").text, document.getElementById("fragment-shader").text)) {
 		console.log('Failed to intialize shaders.');
 		return;
 	}
@@ -91,23 +58,28 @@ function main() {
 	var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
 	var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
 	var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
-	var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-	var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
+	var u_LightColor1 = gl.getUniformLocation(gl.program, 'u_LightColor1');
+	var u_LightColor2 = gl.getUniformLocation(gl.program, 'u_LightColor2');
+	var u_LightDirection1 = gl.getUniformLocation(gl.program, 'u_LightDirection1');
+	var u_LightDirection2 = gl.getUniformLocation(gl.program, 'u_LightDirection2');
 
 	// Trigger using lighting or not
 	var u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting');
 
-	if (!(u_ModelMatrix && u_NormalMatrix && u_ProjMatrix && u_LightColor && u_LightDirection && u_isLighting)) {
+	if (!(u_ModelMatrix && u_NormalMatrix && u_ProjMatrix && u_LightColor1 && u_LightColor2 && u_LightDirection1 && u_LightDirection2 && u_isLighting)) {
 		console.log('Failed to Get the storage locations of matrix');
 		return;
 	}
 
 	// Set the light color (white)
-	gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+	gl.uniform3f(u_LightColor1, 1, 1, 1);
 	// Set the light direction (in the world coordinate)
-	var lightDirection = new Vector3([0.5, 3.0, 4.0]);
-	lightDirection.normalize(); // Normalize
-	gl.uniform3fv(u_LightDirection, lightDirection.elements);
+	var lightDirection1 = new Vector3([0.7, 0.6, -0.2]);
+	gl.uniform3fv(u_LightDirection1, lightDirection1.elements);
+	
+	gl.uniform3f(u_LightColor2, 1, 1, 1);
+	var lightDirection2 = new Vector3([-0.2, -0.4, 0.7]);
+	gl.uniform3fv(u_LightDirection2, lightDirection2.elements);
 
 	updateViewMatrix(gl)
 
@@ -129,7 +101,7 @@ function updateViewMatrix(gl){
 		console.log('Failed to Get the storage locations of matrix');
 		return;
 	}
-	//console.log(viewMatrix.elements)
+	//console.log(eyeDir)
 	viewMatrix.setLookAt(eyePos.x, eyePos.y, eyePos.z, eyeDir.x + eyePos.x, eyeDir.y + eyePos.y, eyeDir.z + eyePos.z, eyeUp.x, eyeUp.y, eyeUp.z)
 	gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 }
@@ -138,14 +110,14 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 	switch (ev.keyCode) {
 		case 40: // Up arrow key
 			eyeDir.applyAxisAngle(eyeSide, -ANGLE_STEP)
-			eyeUp.crossVectors(eyeDir, eyeSide)
+			//eyeUp.crossVectors(eyeDir, eyeSide)
 			//Ensure this doesn't go over the top and turn upside down
-			eyeUp.normalize()
+			//eyeUp.normalize()
 			break;
 		case 38: // Down arrow key
 			eyeDir.applyAxisAngle(eyeSide, ANGLE_STEP)
-			eyeUp.crossVectors(eyeDir, eyeSide)
-			eyeUp.normalize()
+			//eyeUp.crossVectors(eyeDir, eyeSide)
+			//eyeUp.normalize()
 			break;
 		case 39: // Right arrow key
 			eyeDir.applyAxisAngle(eyeUp, -ANGLE_STEP)
@@ -156,6 +128,22 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 			eyeDir.applyAxisAngle(eyeUp, ANGLE_STEP)
 			eyeSide.crossVectors(eyeDir, eyeUp)
 			eyeSide.normalize()
+			break;
+		case 87: // W key
+			eyePos.add(eyeDir)
+			eyePos.y = height
+			break;
+		case 83: // S key
+			eyePos.sub(eyeDir)
+			eyePos.y = height
+			break;
+		case 65: // A key
+			eyePos.add(eyeDir.clone().applyAxisAngle(eyeUp, 1.57076))
+			eyePos.y = height
+			break;
+		case 68: // D key
+			eyePos.add(eyeDir.clone().applyAxisAngle(eyeUp, -1.57076))
+			eyePos.y = height
 			break;
 		default:
 			return; // Skip drawing at no effective action
@@ -224,16 +212,17 @@ function setColors(gl, color){
 	var r = color[0]/255
 	var g = color[1]/255
 	var b = color[2]/255
+	var a = color[3]
 	
 	var colors = new Float32Array([ // Colors
-		r, g, b, r, g, b, r, g, b, r, g, b, // v0-v1-v2-v3 front
-		r, g, b, r, g, b, r, g, b, r, g, b, // v0-v3-v4-v5 right
-		r, g, b, r, g, b, r, g, b, r, g, b, // v0-v5-v6-v1 up
-		r, g, b, r, g, b, r, g, b, r, g, b, // v1-v6-v7-v2 left
-		r, g, b, r, g, b, r, g, b, r, g, b, // v7-v4-v3-v2 down
-		r, g, b, r, g, b, r, g, b, r, g, b, // v4-v7-v6-v5 back
+		r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a,// v0-v1-v2-v3 front
+		r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a,// v0-v3-v4-v5 right
+		r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a,// v0-v5-v6-v1 up
+		r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a,// v1-v6-v7-v2 left
+		r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a,// v7-v4-v3-v2 down
+		r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a,// v4-v7-v6-v5 back
 	]);
-	if (!initArrayBuffer(gl, 'a_Color', colors, 3, gl.FLOAT)) return -1;
+	if (!initArrayBuffer(gl, 'a_Color', colors, 4, gl.FLOAT)) return -1;
 }
 
 function initArrayBuffer(gl, attribute, data, num, type) {
@@ -295,12 +284,46 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_isLighting) {
 	
 	updateViewMatrix(gl)
 
+	modelWalls(ctx, 0, 0, 0)
 	modelDesksAndChairs(ctx, 0, 0, 0)
+}
+
+function modelWalls(ctx, x, y, z){
+	addCube(ctx, x, y+2, z+10, 25, 7, 0.2, color_wall) //whiteboard wall
+	addCube(ctx, x, y+3, z+9.9, 7, 4, 0.2, color_white) //whiteboard
+	addCube(ctx, x, y+1, z+9.7, 7.2, 0.2, 0.6, color_dgrey) //bottom border
+	addCube(ctx, x-3.5, y+3, z+9.85, 0.1, 4.2, 0.2, color_dgrey) //right border
+	addCube(ctx, x+3.5, y+3, z+9.85, 0.1, 4.2, 0.2, color_dgrey) //left border
+	addCube(ctx, x, y+5.05, z+9.85, 7, 0.1, 0.2, color_dgrey) //top border
+	
+	addCube(ctx, x-11.99, y+1, z+6, 0.2, 6, 2, color_wood) //door wall 1
+	addCube(ctx, x-12, y+2, z-2, 0.2, 7, 25, color_wall) //door wall 2
+	
+	addCube(ctx, x-11.9, y+1, z+7, 0.2, 6, 0.2, color_lwood) //door outer 1
+	addCube(ctx, x-11.9, y+4, z+6, 0.2, 0.2, 2.4, color_lwood) //door outer 2
+	addCube(ctx, x-11.9, y+1, z+5, 0.2, 6, 0.2, color_lwood) //door outer 3
+	addCube(ctx, x-11.8, y+1, z+5.35, 0.15, 0.15, 0.15, color_lgrey) //door handle
+	
+	addCube(ctx, x+12, y+2, z-10, 0.2, 7, 10, color_wall) //window wall 1
+	addCube(ctx, x+12, y+2, z+6, 0.2, 7, 10, color_wall) //window wall 2
+	addCube(ctx, x+12, y-1, z-2, 0.2, 2, 7, color_wall) //window wall 3
+	addCube(ctx, x+12, y+6, z-2, 0.2, 2, 7, color_wall) //window wall 4
+	addCube(ctx, x+12, y+2.5, z-5, 0.4, 5, 0.4, color_wood) //window outer 1
+	addCube(ctx, x+12, y+2.5, z+1, 0.4, 5, 0.4, color_wood) //window outer 2
+	addCube(ctx, x+12, y+0.2, z-2, 0.4, 0.4, 6, color_wood) //window outer 3
+	addCube(ctx, x+12, y+4.8, z-2, 0.4, 0.4, 6, color_wood) //window outer 4
+	addCube(ctx, x+12, y+2.5, z-2, 0.2, 0.2, 6, color_wood) //window inner 1
+	addCube(ctx, x+12, y+2.5, z-2, 0.2, 5, 0.2, color_wood) //window inner 2
+	addCube(ctx, x+12, y+2.5, z-2, 0.1, 5, 6, color_glass) //window glass
+	
+	addCube(ctx, x, y+2, z-14, 25, 7, 0.2, color_wall) //back wall
+	addCube(ctx, x, y+5.6, z-2, 25, 0.2, 25, color_ceiling) //ceiling
+	addCube(ctx, x, y-1.3, z-2, 25, 0.2, 25, color_floor) //floor
 }
 
 function modelDesksAndChairs(ctx, x, y, z){
 	modelTeacherChairDesk(ctx, x, y, z+6)
-	modelChairDeskRows(ctx, x, y, z-6)
+	modelChairDeskRows(ctx, x, y-1, z-6)
 }
 
 function modelTeacherChairDesk(ctx, x, y, z){
@@ -310,8 +333,8 @@ function modelTeacherChairDesk(ctx, x, y, z){
 
 function modelTeacherChair(ctx, x, y, z) {
 	addCube(ctx, x, y, z, 1, 0.2, 1, color_lgrey) //seat
-	addCube(ctx, x, y+1, z+0.5, 1, 1.3, 0.2, color_lgrey) //back
-	addCube(ctx, x, y+0.4, z+0.6, 0.2, 0.9, 0.15, color_dgrey) //connector
+	addCube(ctx, x, y+1, z+0.4, 1, 1.3, 0.2, color_lgrey) //back
+	addCube(ctx, x, y+0.4, z+0.5, 0.2, 0.9, 0.15, color_dgrey) //connector
 	addCube(ctx, x, y-0.5, z, 0.2, 0.9, 0.2, color_dgrey) //wheel connector
 	addCubeWithRotate(ctx, x, y-0.95, z, 1.6, 0.2, 0.2, 0, 45, 0, color_dgrey) //one diagonal
 	addCubeWithRotate(ctx, x, y-0.95, z, 1.6, 0.2, 0.2, 0, -45, 0, color_dgrey) //one diagonal

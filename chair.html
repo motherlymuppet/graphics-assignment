@@ -15,6 +15,62 @@
     <script src="./lib/cuon-utils.js"></script>
     <script src="./lib/cuon-matrix.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script>
+	
+	<script id="vertex-shader" type="not-javascript">
+	attribute vec4 a_Position;
+	attribute vec4 a_Color;
+	attribute vec4 a_Normal;
+	uniform mat4 u_ModelMatrix;
+	uniform mat4 u_NormalMatrix;
+	uniform mat4 u_ViewMatrix;
+	uniform mat4 u_ProjMatrix;
+	uniform vec3 u_LightColor1;
+	uniform vec3 u_LightDirection1;
+	uniform vec3 u_LightColor2;
+	uniform vec3 u_LightDirection2;
+	varying vec4 v_Color;
+	uniform bool u_isLighting;
+	void main() {
+	  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
+	  if(u_isLighting)
+	  {
+	     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);
+	     float nDotL1 = max(dot(normal, u_LightDirection1), 0.0);
+		 float nDotL2 = max(dot(normal, u_LightDirection2), 0.0);
+	// Calculate the color due to diffuse reflection
+	     vec3 diffuse = ((u_LightColor1 * nDotL1) + (u_LightColor2 * nDotL2)) * a_Color.rgb;
+		 float con3 = 0.2603;
+		 float con2 = -1.0594;
+		 float con1 = 1.5852;
+		 float con0 = 0.2194;
+		 
+		 float orig_x = min(diffuse.x, 1.0);
+		 float orig_y = min(diffuse.y, 1.0);
+		 float orig_z = min(diffuse.z, 1.0);
+		 
+		 float dif_x = con3 * pow(orig_x, 3.0) + con2 * pow(orig_x, 2.0) + con1 * orig_x + con0;
+		 float dif_y = con3 * pow(orig_y, 3.0) + con2 * pow(orig_y, 2.0) + con1 * orig_y + con0;
+		 float dif_z = con3 * pow(orig_z, 3.0) + con2 * pow(orig_z, 2.0) + con1 * orig_z + con0;
+		 
+	     v_Color = vec4(dif_x, dif_y, dif_z, a_Color.a);
+	  }
+	  else
+	  {
+	     v_Color = a_Color;
+	  }
+	}
+	</script>
+	
+	<script id="fragment-shader" type="not-javascript">
+	#ifdef GL_ES
+	precision mediump float;
+	#endif
+	varying vec4 v_Color;
+	void main() {
+	  gl_FragColor = v_Color;
+	}
+	</script>
+	
     <script src="./chair.js"></script>
   </body>
 </html>
