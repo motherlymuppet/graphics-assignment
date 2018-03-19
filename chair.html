@@ -9,6 +9,9 @@
     <canvas id="webgl" width="100%" height="600">
     Please use a browser that supports "canvas"
     </canvas>
+	
+	<input id="spin" type="checkbox"> Spin Lamp <br><br>
+	<input type="range" min="0" max="200" value = "0" id="lift" oninput="draw()" onchange="draw()"> Lift Tables and Chairs
 
     <script src="./lib/webgl-utils.js"></script>
     <script src="./lib/webgl-debug.js"></script>
@@ -28,46 +31,65 @@
 	uniform vec3 u_LightDirection1;
 	uniform vec3 u_LightColor2;
 	uniform vec3 u_LightDirection2;
+	uniform vec3 u_LightPosition;
+	uniform vec3 u_LightColor3;
 	varying vec4 v_Color;
-	uniform bool u_isLighting;
+	varying vec3 v_Normal;
+	varying vec3 v_Position;
+	varying vec3 v_LightColor1;
+	varying vec3 v_LightDirection1;
+	varying vec3 v_LightColor2;
+	varying vec3 v_LightDirection2;
+	varying vec3 v_LightColor3;
+	varying vec3 v_LightPosition;
 	void main() {
 	  gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
-	  if(u_isLighting)
-	  {
-	     vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);
-	     float nDotL1 = max(dot(normal, u_LightDirection1), 0.0);
-		 float nDotL2 = max(dot(normal, u_LightDirection2), 0.0);
-	// Calculate the color due to diffuse reflection
-	     vec3 diffuse = ((u_LightColor1 * nDotL1) + (u_LightColor2 * nDotL2)) * a_Color.rgb;
-		 float con3 = 0.2603;
-		 float con2 = -1.0594;
-		 float con1 = 1.5852;
-		 float con0 = 0.2194;
-		 
-		 float orig_x = min(diffuse.x, 1.0);
-		 float orig_y = min(diffuse.y, 1.0);
-		 float orig_z = min(diffuse.z, 1.0);
-		 
-		 float dif_x = con3 * pow(orig_x, 3.0) + con2 * pow(orig_x, 2.0) + con1 * orig_x + con0;
-		 float dif_y = con3 * pow(orig_y, 3.0) + con2 * pow(orig_y, 2.0) + con1 * orig_y + con0;
-		 float dif_z = con3 * pow(orig_z, 3.0) + con2 * pow(orig_z, 2.0) + con1 * orig_z + con0;
-		 
-	     v_Color = vec4(dif_x, dif_y, dif_z, a_Color.a);
-	  }
-	  else
-	  {
-	     v_Color = a_Color;
-	  }
+	  v_Position = vec3(u_ModelMatrix * a_Position);
+	  v_Normal = vec3(u_NormalMatrix * a_Normal);
+	  v_Color = a_Color;
+	  v_LightColor1 = u_LightColor1;
+	  v_LightColor2 = u_LightColor2;
+	  v_LightColor3 = u_LightColor3;
+	  v_LightDirection1 = u_LightDirection1;
+	  v_LightDirection2 = u_LightDirection2;
+	  v_LightPosition = u_LightPosition;
 	}
 	</script>
 	
 	<script id="fragment-shader" type="not-javascript">
-	#ifdef GL_ES
 	precision mediump float;
-	#endif
+	varying vec3 v_LightColor1;
+	varying vec3 v_LightDirection1;
+	varying vec3 v_LightColor2;
+	varying vec3 v_LightDirection2;
+	varying vec3 v_LightColor3;
+	varying vec3 v_LightPosition;
 	varying vec4 v_Color;
+	varying vec3 v_Normal;
+	varying vec3 v_Position;
 	void main() {
-	  gl_FragColor = v_Color;
+		vec3 normal = normalize(v_Normal);
+		vec3 spotLightDirection = normalize(v_LightPosition - v_Position);
+		
+		float nDotL1 = max(dot(normal, v_LightDirection1), 0.0);
+		float nDotL2 = max(dot(normal, v_LightDirection2), 0.0);
+		float nDotL3 = max(dot(spotLightDirection, normal), 0.0);
+		
+		vec3 diffuse = ((v_LightColor1 * nDotL1) + (v_LightColor2 * nDotL2) + (v_LightColor3 * nDotL3)) * v_Color.rgb;
+		float con3 = 0.2603;
+		float con2 = -1.0594;
+		float con1 = 1.5852;
+		float con0 = 0.2194;
+		 
+		float orig_x = min(diffuse.x * 0.7, 1.0);
+		float orig_y = min(diffuse.y * 0.7, 1.0);
+		float orig_z = min(diffuse.z * 0.7, 1.0);
+		 
+		float dif_x = con3 * pow(orig_x, 3.0) + con2 * pow(orig_x, 2.0) + con1 * orig_x + con0;
+		float dif_y = con3 * pow(orig_y, 3.0) + con2 * pow(orig_y, 2.0) + con1 * orig_y + con0;
+		float dif_z = con3 * pow(orig_z, 3.0) + con2 * pow(orig_z, 2.0) + con1 * orig_z + con0;
+		 
+	    gl_FragColor = vec4(dif_x, dif_y, dif_z, v_Color.a);
 	}
 	</script>
 	
