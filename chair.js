@@ -33,12 +33,12 @@ var lampRotation = 0
 var gl
 var u_ModelMatrix
 var u_NormalMatrix
-u_LightColor1
-u_LightColor2
-u_LightColor3
-u_LightDirection1
-u_LightDirection2
-u_LightPosition
+var u_LightColor1
+var u_LightColor2
+var u_LightColor3
+var u_LightDirection1
+var u_LightDirection2
+var u_LightPosition
 
 function main() {
 	// Retrieve <canvas> element
@@ -49,6 +49,9 @@ function main() {
 	
 	document.getElementById('lift').value = 0
 	document.getElementById('spin').checked = false
+	document.getElementById('dirLightA').checked = true
+	document.getElementById('dirLightB').checked = true
+	document.getElementById('pointLight').checked = true
 
 	// Get the rendering context for WebGL
 	gl = getWebGLContext(canvas);
@@ -75,12 +78,12 @@ function main() {
 	u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
 	var u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
 	
-	var u_LightColor1 = gl.getUniformLocation(gl.program, 'u_LightColor1');
-	var u_LightColor2 = gl.getUniformLocation(gl.program, 'u_LightColor2');
-	var u_LightColor3 = gl.getUniformLocation(gl.program, 'u_LightColor3');
-	var u_LightDirection1 = gl.getUniformLocation(gl.program, 'u_LightDirection1');
-	var u_LightDirection2 = gl.getUniformLocation(gl.program, 'u_LightDirection2');
-	var u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
+	u_LightColor1 = gl.getUniformLocation(gl.program, 'u_LightColor1');
+	u_LightColor2 = gl.getUniformLocation(gl.program, 'u_LightColor2');
+	u_LightColor3 = gl.getUniformLocation(gl.program, 'u_LightColor3');
+	u_LightDirection1 = gl.getUniformLocation(gl.program, 'u_LightDirection1');
+	u_LightDirection2 = gl.getUniformLocation(gl.program, 'u_LightDirection2');
+	u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
 
 	updateViewMatrix(gl)
 
@@ -102,7 +105,6 @@ function updateViewMatrix(gl){
 		console.log('Failed to Get the storage locations of matrix');
 		return;
 	}
-	//console.log(eyeDir)
 	viewMatrix.setLookAt(eyePos.x, eyePos.y, eyePos.z, eyeDir.x + eyePos.x, eyeDir.y + eyePos.y, eyeDir.z + eyePos.z, eyeUp.x, eyeUp.y, eyeUp.z)
 	gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 }
@@ -263,19 +265,34 @@ function popMatrix() { // Retrieve the matrix from the array
 
 //This does the actual creation of the scene
 function draw() {
+	var dirLightA = document.getElementById('dirLightA').checked
+	var dirLightB = document.getElementById('dirLightB').checked
+	var pointLight = document.getElementById('pointLight').checked
 	
 	// Set the light color (white)
-	gl.uniform3f(u_LightColor1, 1, 1, 1);
-	// Set the light direction (in the world coordinate)
-	var lightDirection1 = new Vector3([0.7, 0.6, -0.2]);
-	gl.uniform3fv(u_LightDirection1, lightDirection1.elements);
+	if(dirLightA){
+		gl.uniform3f(u_LightColor1, 1, 1, 1);
+	}
+	else{
+		gl.uniform3f(u_LightColor1, 0, 0, 0);
+	}
+	gl.uniform3f(u_LightDirection1, 0.7, 0.6, -0.2);
 	
-	gl.uniform3f(u_LightColor2, 1, 1, 1);
-	var lightDirection2 = new Vector3([-0.2, -0.4, 0.7]);
-	gl.uniform3fv(u_LightDirection2, lightDirection2.elements);
+	if(dirLightB){
+		gl.uniform3f(u_LightColor2, 0.8, 0.6, 0.6);
+	}
+	else{
+		gl.uniform3f(u_LightColor2, 0, 0, 0);
+	}
+	gl.uniform3f(u_LightDirection2, -0.6, -0.4, 0.7);
 	
+	if(pointLight){
+		gl.uniform3f(u_LightColor3, 1, 0.95, 0.9)
+	}
+	else{
+		gl.uniform3f(u_LightColor3, 0, 0, 0)
+	}
 	gl.uniform3f(u_LightPosition, -1.4, 1.7, 5)
-	gl.uniform3f(u_LightColor3, 1, 0.95, 0.9)
 	
 	// Clear color and depth buffer
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -332,7 +349,7 @@ function modelWalls(n, x, y, z){
 function modelDesksAndChairs(n, x, y, z){
 	var liftAmount = document.getElementById('lift').value / 100
 	modelTeacherChairDesk(n, x, y + liftAmount, z+6)
-	modelChairDeskRows(n, x, y-1 + liftAmount, z-6)
+	modelChairDeskRows(n, x, y-0.5 + liftAmount, z-6)
 }
 
 function modelTeacherChairDesk(n, x, y, z){

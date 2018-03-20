@@ -1,0 +1,93 @@
+a)
+
+A Vertex Buffer stores the co-ordinates of each vertex in the mesh. The Index Buffer stores pointers to these vertices, indicating how the triangles should be drawn on the cluster of vertices. 
+
+Without an Index Buffer, we must specify the co-ordinates for each vertex in each triangle. Consider a Cube. Each vertex will be part of at least three triangles. In this case, we would need to write the co-ordinates of each vertex at least three times. This also adds another point of error, because to change one vertex we must change it at least three times in the vertex buffer.
+
+Using an Index Buffer, we simply declare the vertices once in the Vertex Buffer, then use pointers to the vertices. This method has the additional benefit of reducing the memory footprint of the model, since each vertex needs only be stored once in memory, as opposed to 3+ times.
+
+It also reduces computation time, as we don't have duplicate vertices so the vertex shader does not need to be run multiple times per vertex.
+
+b)
+
+This code currently colours every fragment in a solid blue color. This will result in the whole screen being blue. This obviously does not support point lighting, nor does it support showing anything meaninful on the screen other than lots of blue.
+
+Vertex Shader for Point Lighting with per-vertex colouring:
+------------------------------------
+attribute vec4 a_Position;
+attribute vec4 a_Color;
+attribute vec4 a_Normal;
+uniform mat4 u_ModelMatrix;
+uniform vec3 u_LightPosition;
+uniform vec3 u_LightColor;
+varying vec4 v_Color;
+
+void main(){
+	gl_Position = u_ModelMatrix * a_Position;
+	vec4 vertexPosition = u_ModelMatrix * a_Position;
+	vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));
+	float nDotL = max(dot(lightDirection, normal), 0.0);
+	vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;
+	v_Color = vec4(diffuse.x, diffuse.y, diffuse.z, a_Color.a);
+}
+------------------------------------
+
+Fragment Shader for Point lighting with per-vertex colouring:
+------------------------------------
+varying vec4 v_Color;
+void main() {
+	gl_FragColor = v_Color;
+}
+------------------------------------
+
+Vertex Shader for Point Lighting with per-fragment colouring:
+------------------------------------
+attribute vec4 a_Position;
+attribute vec4 a_Color;
+attribute vec4 a_Normal;
+uniform mat4 u_ModelMatrix;
+uniform vec3 u_LightPosition;
+uniform vec3 u_LightColor;
+varying vec3 v_Position;
+varying vec4 v_Color;
+varying vec3 v_Normal;
+varying vec3 v_LightColor;
+varying vec3 v_LightPoisition;
+
+void main(){
+	gl_Position = u_ModelMatrix * a_Position;
+	v_Position = vec3(u_ModelMatrix * a_Position);
+	v_Normal = vec3(u_NormalMatrix * a_Normal);
+	v_Color = a_Color;
+	v_LightColor = u_LightColor;
+	v_LightPosition = u_LightPosition;
+}
+------------------------------------
+
+Fragment Shader for Point lighting with per-fragment colouring:
+------------------------------------
+varying vec4 v_Color;
+void main() {
+	precision mediump float;
+	varying vec3 v_LightColor;
+	varying vec3 v_LightPosition;
+	varying vec4 v_Color;
+	varying vec3 v_Normal;
+	varying vec3 v_Position;
+	void main() {
+		vec3 normal = normalize(v_Normal);
+		vec3 pointLightDirection = normalize(v_LightPosition - v_Position);
+		float nDotL = max(dot(pointLightDirection, normal), 0.0);
+		vec3 diffuse = v_LightColor * nDotL * v_Color.rgb; 
+		gl_FragColor = vec4(diffuse.x, diffuse.y, diffuse.z, v_Color.a);
+	}
+}
+------------------------------------
+
+c)
+
+A normal vector is the vector representing the normal (perpendicular) to a surface. Normal vectors are used when calculating lighting on a surface because they are the midpoint between the incidence ray and the reflected ray. We can calculate the intensity of light coming from a surface by taking the dot product between the normal vector and the vector representing the direction of the incoming light.
+
+The normal vectors are computed alongside the mesh. Then, when the mesh is transformed, the normal vectors are transformed in the same way. If we translate the mesh, then translate the normal vectors, the resulting vectors will be correct for the mesh in its new location.
+
+The same is true for rotation and scaling. When we rotate/scale the mesh, we simply perform the same transformation on the normal vectors and the result is correct for the new mesh.
